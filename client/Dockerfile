@@ -21,10 +21,8 @@ FROM nginx:alpine
 # 🚚 Copy built static files from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# 🧾 Add custom nginx config (optional but usually required for SPA)
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# 🌐 Expose port 80 for HTTP
 EXPOSE 80
 
 # 🚀 Start nginx
