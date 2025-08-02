@@ -19,7 +19,7 @@ RUN npm run build
 FROM nginx:alpine
 
 # 🚚 Copy built static files from builder stage
-COPY --from=builder /app/build /usr/share/nginx/html
+# COPY --from=builder /app/build /usr/share/nginx/html
 
 # 🧾 Add custom nginx config (optional but usually required for SPA)
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
