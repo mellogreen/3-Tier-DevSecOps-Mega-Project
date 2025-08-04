@@ -2,7 +2,7 @@ pipeline {
     agent any
     
      tools {
-         nodejs 'nodejs24'
+         nodejs 'nodejs23'
      }
     
     environment {
@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Git Checkout') {
             steps {
-                git branch: 'dev', url: 'https://github.com/mellogreen/3-Tier-DevSecOps-Mega-Project.git'
+                git branch: 'dev-ci/cd', url: 'https://github.com/mellogreen/3-Tier-DevSecOps-Mega-Project.git'
             }
         }
         
@@ -79,6 +79,42 @@ pipeline {
          stage('Trivy Scan') {
             steps {
                 sh 'trivy fs --format table -o fs-report.html .'
+            }
+        }
+        
+        stage('Docker image & push backend') {
+            steps {
+               script{
+                   withDockerRegistry(credentialsId: 'docker-cred') {
+                       dir('api') {
+                           sh 'docker build -t mellogreen/backend:latest .'
+                           sh 'trivy image --format table -o backend-image-report.html mellogreen/backend'
+                           sh 'docker push mellogreen/backend'
+                       } 
+                   }
+               }
+            }
+        }
+        
+        stage('Docker image & push frontend') {
+            steps {
+               script{
+                   withDockerRegistry(credentialsId: 'docker-cred') {
+                       dir('client') {
+                           sh 'docker build -t mellogreen/frontend:latest .'
+                           sh 'trivy image --format table -o frontend-image-report.html mellogreen/frontend'
+                           sh 'docker push mellogreen/frontend'
+                       } 
+                   }
+               }
+            }
+        }
+        
+        stage('Docker compose deploy') {
+            steps {
+                script{
+                    sh 'docker-compose up -d'
+                }
             }
         }
     }
