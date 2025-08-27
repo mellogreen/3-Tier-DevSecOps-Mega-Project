@@ -1,1 +1,83 @@
-
+pipeline {
+    agent any
+    
+     tools {
+         nodejs 'nodejs23'
+     }
+    
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    
+    stages {
+        stage('Git Checkout') {
+            steps {
+                git branch: 'ci-branch', url: 'https://github.com/mellogreen/3-Tier-DevSecOps-Mega-Project.git'
+            }
+        }
+        
+        stage('Gitleaks') {
+            steps {
+                sh 'gitleaks detect --source=./client --exit-code=1'
+                sh 'gitleaks detect --source=./api --exit-code=1'
+            }
+        }
+        
+       stage('Frontend') {
+            steps {
+                dir('client') {
+                    // Improved syntax check command:
+                    sh '''
+                        echo "Node.js version: $(node --version)"
+                        echo "Checking JavaScript files..."
+                        find . -name "*.js" -print0 | xargs -0 -P4 -I {} sh -c '
+                            echo "Checking {}" && 
+                            node --check "{}" || 
+                            echo "Error in {}"
+                        '
+                    '''
+                }
+            }
+        }
+        
+        stage('Backend') {
+            steps {
+                dir('api') {
+                    // Improved syntax check command:
+                    sh '''
+                        echo "Node.js version: $(node --version)"
+                        echo "Checking JavaScript files..."
+                        find . -name "*.js" -print0 | xargs -0 -P4 -I {} sh -c '
+                            echo "Checking {}" && 
+                            node --check "{}" || 
+                            echo "Error in {}"
+                        '
+                    '''
+                }
+            }
+        }
+        
+         stage('SonarQube Analysis') {
+            steps {
+                  withSonarQubeEnv('sonar') {
+                   sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=NodeJS-Project \
+                          -Dsonar.projectKey=NodeJS-Project '''
+                 }
+            }
+        }
+        
+         stage('Codequality Check') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                }
+            }
+        }
+        
+         stage('Trivy Scan') {
+            steps {
+                sh 'trivy fs --format table -o fs-report.html .'
+            }
+        }
+    }
+}
