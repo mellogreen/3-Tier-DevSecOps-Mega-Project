@@ -1,6 +1,5 @@
 pipeline {
     agent any
-    
      tools {
          nodejs 'nodejs23'
      }
@@ -15,7 +14,7 @@ pipeline {
                 git branch: 'dev-ci/cd', url: 'https://github.com/mellogreen/3-Tier-DevSecOps-Mega-Project.git'
             }
         }
-        
+
         stage('Gitleaks') {
             steps {
                 sh 'gitleaks detect --source=./client --exit-code=1'
