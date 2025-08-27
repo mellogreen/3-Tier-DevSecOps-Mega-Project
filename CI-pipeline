@@ -59,12 +59,10 @@ pipeline {
         
          stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonar') {
                   withSonarQubeEnv('sonar') {
                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=NodeJS-Project \
                           -Dsonar.projectKey=NodeJS-Project '''
-                   }
-               }
+                 }
             }
         }
         
@@ -82,37 +80,37 @@ pipeline {
             }
         }
         
-        stage('Docker image & push backend') {
-            steps {
-               script{
-                   withDockerRegistry(credentialsId: 'docker-cred') {
-                       dir('api') {
-                           sh 'docker build -t mellogreen/backend:latest .'
-                           sh 'trivy image --format table -o backend-image-report.html mellogreen/backend'
-                           sh 'docker push mellogreen/backend'
-                       } 
-                   }
-               }
-            }
-        }
-        
-        stage('Docker image & push frontend') {
-            steps {
-               script{
-                   withDockerRegistry(credentialsId: 'docker-cred') {
-                       dir('client') {
-                           sh 'docker build -t mellogreen/frontend:latest .'
-                           sh 'trivy image --format table -o frontend-image-report.html mellogreen/frontend'
-                           sh 'docker push mellogreen/frontend'
-                       } 
-                   }
-               }
-            }
-        }
-        
-        stage('Docker compose deploy') {
+         stage('Build & tag frontend docker image') {
             steps {
                 script{
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                       dir('client') {
+                          sh 'docker build -t mellogreen/frontend:latest .' 
+                          sh 'trivy image --format table -o frontend-image-report.html mellogreen/frontend:latest'
+                          sh 'docker push mellogreen/frontend:latest'
+                      }
+                   }
+                }
+            }
+        }
+        
+         stage('Build & tag backend docker image') {
+            steps {
+                script{
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                       dir('api') {
+                          sh 'docker build -t mellogreen/backend:latest .' 
+                          sh 'trivy image --format table -o backend-image-report.html mellogreen/backend:latest'
+                          sh 'docker push mellogreen/backend:latest'
+                      }
+                   }
+                }
+            }
+        }
+        
+         stage('Docker deploy via compose') {
+            steps {
+                script {
                     sh 'docker-compose up -d'
                 }
             }
